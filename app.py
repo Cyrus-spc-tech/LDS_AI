@@ -6,6 +6,7 @@ import heapq
 from fpdf import FPDF
 import matplotlib.pyplot as plt
 import re
+import pandas as pd 
 
 @st.cache_resource
 def load_spacy():
