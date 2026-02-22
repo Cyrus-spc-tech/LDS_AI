@@ -1,15 +1,13 @@
 import streamlit as st
 from pdfminer.high_level import extract_text
-import smtplib
-from email.message import EmailMessage
+# import smtplib
+# from email.message import EmailMessage
 from email_validator import validate_email, EmailNotValidError
 import spacy
 from collections import Counter
 import heapq
 from fpdf import FPDF
-import pandas as pd
 import matplotlib.pyplot as plt
-import requests
 import subprocess
 import sys
 
@@ -20,11 +18,26 @@ except ImportError:
     subprocess.check_call([sys.executable, "-m", "pip", "install", "spacy"])
 
 try:
-    spacy.load("en_core_web_sm")
+    nlp = spacy.load("en_core_web_sm")
 except OSError:
-    subprocess.check_call([sys.executable, "-m", "spacy", "download", "en_core_web_sm"])
-
-nlp = spacy.load("en_core_web_sm")
+    try:
+        # Try downloading with user flag to avoid interactive prompts
+        subprocess.check_call([sys.executable, "-m", "spacy", "download", "en_core_web_sm", "--user"])
+        nlp = spacy.load("en_core_web_sm")
+    except subprocess.CalledProcessError:
+        try:
+            # Try direct download approach
+            subprocess.check_call([sys.executable, "-c", "import spacy; spacy.cli.download('en_core_web_sm')"])
+            nlp = spacy.load("en_core_web_sm")
+        except (subprocess.CalledProcessError, OSError):
+            try:
+                # Try pip install directly
+                subprocess.check_call([sys.executable, "-m", "pip", "install", "https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.7.1/en_core_web_sm-3.7.1.tar.gz"])
+                nlp = spacy.load("en_core_web_sm")
+            except (subprocess.CalledProcessError, OSError):
+                # Final fallback: show error and use basic text processing
+                st.error("❌ Unable to download spaCy model. Using basic text processing instead.")
+                nlp = None
 
 # Predefined risk-related words
 RISK_WORDS = [
@@ -40,22 +53,36 @@ def extract_text_from_pdf(uploaded_file):
     return extract_text(uploaded_file)
 
 def extract_key_clauses(text):
-    doc = nlp(text)
-    sentences = list(doc.sents)
-    clauses = [str(sentence).strip() for sentence in sentences if len(sentence) > 10]
-    return clauses[:10]
+    if nlp is None:
+        # Fallback: split by sentences using basic punctuation
+        import re
+        sentences = re.split(r'[.!?]+', text)
+        clauses = [s.strip() for s in sentences if len(s.strip()) > 10]
+        return clauses[:10]
+    else:
+        doc = nlp(text)
+        sentences = list(doc.sents)
+        clauses = [str(sentence).strip() for sentence in sentences if len(sentence) > 10]
+        return clauses[:10]
 
 def summarize_text(text, num_sentences=5):
-    doc = nlp(text)
-    sentences = list(doc.sents)
-    word_frequencies = Counter([token.text.lower() for token in doc if token.is_alpha and not token.is_stop])
-    sentence_scores = {sent: sum(word_frequencies.get(word.text.lower(), 0) for word in sent) for sent in sentences}
-    summarized_sentences = heapq.nlargest(num_sentences, sentence_scores, key=sentence_scores.get)
-    return ' '.join([str(sentence) for sentence in summarized_sentences])
+    if nlp is None:
+        # Fallback: simple sentence extraction
+        import re
+        sentences = re.split(r'[.!?]+', text)
+        sentences = [s.strip() for s in sentences if len(s.strip()) > 10]
+        return '. '.join(sentences[:num_sentences])
+    else:
+        doc = nlp(text)
+        sentences = list(doc.sents)
+        word_frequencies = Counter([token.text.lower() for token in doc if token.is_alpha and not token.is_stop])
+        sentence_scores = {sent: sum(word_frequencies.get(word.text.lower(), 0) for word in sent) for sent in sentences}
+        summarized_sentences = heapq.nlargest(num_sentences, sentence_scores, key=sentence_scores.get)
+        return ' '.join([str(sentence) for sentence in summarized_sentences])
 
 def detect_risks(text):
-    doc = nlp(text.lower())
-    return list(set(token.text for token in doc if token.text in RISK_WORDS))
+    text_lower = text.lower()
+    return list(set(word for word in RISK_WORDS if word in text_lower))
 
 def get_regulatory_updates():
     predefined_updates = [
@@ -76,6 +103,46 @@ def visualize_key_clauses_frequency(clauses):
         st.pyplot(plt)
     else:
         st.write("🚫 No key clauses to visualize.")
+
+def generate_pdf_report(summary, clauses, risks, updates):
+    pdf = FPDF()
+    pdf.add_page()
+    pdf.set_font("Arial", "B", 16)
+    pdf.cell(0, 10, "Legal Document Analysis Report", ln=True, align="C")
+    pdf.ln(10)
+    
+    if summary:
+        pdf.set_font("Arial", "B", 12)
+        pdf.cell(0, 10, "Summary:", ln=True)
+        pdf.set_font("Arial", "", 10)
+        pdf.multi_cell(0, 10, summary)
+        pdf.ln(5)
+    
+    if clauses:
+        pdf.set_font("Arial", "B", 12)
+        pdf.cell(0, 10, "Key Clauses:", ln=True)
+        pdf.set_font("Arial", "", 10)
+        for i, clause in enumerate(clauses, 1):
+            pdf.multi_cell(0, 10, f"{i}. {clause}")
+        pdf.ln(5)
+    
+    if risks:
+        pdf.set_font("Arial", "B", 12)
+        pdf.cell(0, 10, "Detected Risks:", ln=True)
+        pdf.set_font("Arial", "", 10)
+        pdf.multi_cell(0, 10, ", ".join(risks))
+        pdf.ln(5)
+    
+    if updates:
+        pdf.set_font("Arial", "B", 12)
+        pdf.cell(0, 10, "Regulatory Updates:", ln=True)
+        pdf.set_font("Arial", "", 10)
+        for update in updates:
+            pdf.multi_cell(0, 10, f"- {update.get('title')}: {update.get('summary')}")
+    
+    pdf_path = "Analysis_Results.pdf"
+    pdf.output(pdf_path)
+    return pdf_path
 
 def main():
     st.title("📑 Interactive Legal Document Analysis Dashboard")
@@ -120,7 +187,7 @@ def main():
                 st.write(f"- **{update.get('title')}**: {update.get('summary')}")
 
         if st.button("📄 Generate PDF Report"):
-            pdf_path = "Analysis_Results.pdf"
+            pdf_path = generate_pdf_report(summary, clauses, risks, updates)
             st.success("📥 PDF Report Ready! Download Below")
             with open(pdf_path, "rb") as file:
                 st.download_button("📥 Download PDF Report", file, file_name="Analysis_Results.pdf", mime="application/pdf")
