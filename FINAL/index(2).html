@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Legal AI</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        :root {
+            --primary: #6366f1;
+            --primary-soft: #f5f3ff;
+            --bg: #f8fafc;
+            --sidebar-bg: #0f172a;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --white: #ffffff;
+            --border: #e2e8f0;
+            --danger: #ef4444;
+            --success: #10b981;
+        }
+
+        /* Basic Reset */
+        * { box-sizing: border-box; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); font-family: 'Plus Jakarta Sans', sans-serif; }
+        body { margin: 0; background: var(--bg); color: var(--text-main); height: 100vh; overflow: hidden; }
+        .hidden { display: none !important; opacity: 0; }
+
+        /* --- AUTHENTICATION OVERLAY --- */
+        .auth-overlay {
+            position: fixed; inset: 0; background: var(--sidebar-bg);
+            display: flex; align-items: center; justify-content: center; z-index: 3000;
+        }
+        .auth-card {
+            background: var(--white); padding: 3rem; border-radius: 32px;
+            width: 100%; max-width: 450px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);
+            text-align: center;
+        }
+        .input-box { text-align: left; margin-bottom: 1.2rem; }
+        .input-box label { display: block; font-size: 0.75rem; font-weight: 700; margin-bottom: 8px; text-transform: uppercase; }
+        .input-box input { width: 100%; padding: 12px 16px; border: 1.5px solid var(--border); border-radius: 12px; outline: none; }
+        .input-box input:focus { border-color: var(--primary); box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1); }
+        .btn-primary { width: 100%; padding: 14px; background: var(--primary); color: white; border: none; border-radius: 12px; font-weight: 700; cursor: pointer; }
+
+        /* --- SIDEBAR --- */
+        #app-shell { display: flex; height: 100vh; }
+        .sidebar { width: 280px; background: var(--sidebar-bg); color: white; padding: 2rem 1.5rem; display: flex; flex-direction: column; }
+        .brand { display: flex; align-items: center; gap: 12px; margin-bottom: 3rem; font-size: 1.2rem; font-weight: 700; }
+        .logo-dot { width: 12px; height: 12px; background: var(--primary); border-radius: 50%; box-shadow: 0 0 10px var(--primary); }
+        .nav-link { padding: 12px; border-radius: 12px; display: flex; align-items: center; gap: 12px; color: var(--text-muted); cursor: pointer; margin-bottom: 8px; }
+        .nav-link:hover, .nav-link.active { background: rgba(255, 255, 255, 0.05); color: white; }
+        
+        .status-widget { background: rgba(255,255,255,0.03); padding: 1.2rem; border-radius: 20px; border: 1px solid rgba(255,255,255,0.05); margin: 2rem 0; }
+        .bar-bg { background: rgba(255,255,255,0.1); height: 6px; border-radius: 10px; margin: 10px 0; overflow: hidden; }
+        .bar-fill { background: var(--primary); height: 100%; width: 65%; }
+
+        /* --- MAIN WORKSPACE --- */
+        .workspace { flex: 1; padding: 2.5rem 4rem; overflow-y: auto; }
+        .glass-box { background: white; padding: 5rem; border-radius: 32px; border: 1px solid var(--border); text-align: center; cursor: pointer; }
+        .glass-box:hover { border-color: var(--primary); transform: translateY(-2px); box-shadow: 0 10px 20px rgba(0,0,0,0.03); }
+        .icon-circle { width: 64px; height: 64px; background: var(--primary-soft); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1.5rem; color: var(--primary); }
+
+        /* --- PROFILE VIEW --- */
+        .stat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; margin-bottom: 3rem; }
+        .stat-card { background: white; padding: 1.5rem; border-radius: 20px; border: 1px solid var(--border); }
+        .data-table { width: 100%; border-collapse: collapse; background: white; border-radius: 20px; overflow: hidden; border: 1px solid var(--border); }
+        .data-table th { background: #f1f5f9; text-align: left; padding: 15px 20px; font-size: 0.75rem; color: var(--text-muted); }
+        .data-table td { padding: 18px 20px; border-bottom: 1px solid var(--border); font-size: 0.9rem; }
+
+        /* --- SUMMARY MODAL --- */
+        .modal-overlay { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(8px); z-index: 4000; display: flex; align-items: center; justify-content: center; padding: 2rem; }
+        .modal-card { background: white; width: 100%; max-width: 800px; max-height: 90vh; border-radius: 28px; overflow-y: auto; display: flex; flex-direction: column; }
+        .modal-header { padding: 2rem; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+        .badge { background: #fef3c7; color: #92400e; font-size: 0.7rem; font-weight: 800; padding: 4px 10px; border-radius: 6px; }
+        .modal-body { padding: 2rem; }
+        .summary-box { background: #f8fafc; padding: 1.5rem; border-radius: 16px; border: 1px solid var(--border); line-height: 1.6; margin-bottom: 1.5rem; }
+        .risk-card { background: #fff1f2; border-left: 4px solid var(--danger); padding: 1.2rem; border-radius: 10px; color: #9f1239; font-size: 0.9rem; }
+    </style>
+</head>
+<body>
+
+    <div id="page-auth" class="auth-overlay">
+        <div id="form-login" class="auth-card">
+            <h2>Welcome Back</h2>
+            <p>Enter your credentials to access the legal vault.</p>
+            <form onsubmit="handleAuth(event, 'login')">
+                <div class="input-box"><label>Email</label><input type="email" required placeholder="attorney@firm.com"></div>
+                <div class="input-box"><label>Password</label><input type="password" required placeholder="••••••••"></div>
+                <button type="submit" class="btn-primary">Sign In</button>
+            </form>
+            <p style="margin-top: 1.5rem; font-size: 0.85rem; color: var(--text-muted);">New user? <span style="color: var(--primary); cursor: pointer;" onclick="toggleAuth('register')">Create Account</span></p>
+        </div>
+
+        <div id="form-register" class="auth-card hidden">
+            <h2>Join LexiBrief</h2>
+            <p>Start your journey to Senior Partner status.</p>
+            <form onsubmit="handleAuth(event, 'register')">
+                <div class="input-box"><label>Full Name</label><input type="text" id="reg-name" required placeholder="John Doe"></div>
+                <div class="input-box"><label>Email</label><input type="email" required placeholder="john@legal.com"></div>
+                <div class="input-box"><label>Password</label><input type="password" required placeholder="••••••••"></div>
+                <button type="submit" class="btn-primary">Register</button>
+            </form>
+            <p style="margin-top: 1.5rem; font-size: 0.85rem; color: var(--text-muted);">Member? <span style="color: var(--primary); cursor: pointer;" onclick="toggleAuth('login')">Login</span></p>
+        </div>
+    </div>
+
+    <div id="app-shell" class="hidden">
+        <aside class="sidebar">
+            <div class="brand"><div class="logo-dot"></div><span>Lexi<b>Brief</b></span></div>
+            <nav>
+                <div class="nav-link active" onclick="showPage('workspace')"><i data-lucide="layout"></i> Workspace</div>
+                <div class="nav-link" onclick="showPage('profile')"><i data-lucide="user"></i> My Profile</div>
+                <div class="nav-link" style="margin-top: auto; color: var(--danger);" onclick="location.reload()"><i data-lucide="log-out"></i> Logout</div>
+            </nav>
+            <div class="status-widget">
+                <div style="display: flex; justify-content: space-between; font-size: 0.75rem;"><span>Partner Status</span><b>Lvl 12</b></div>
+                <div class="bar-bg"><div class="bar-fill"></div></div>
+                <small style="color: #64748b;">2,450 / 3,000 XP</small>
+            </div>
+        </aside>
+
+        <main class="workspace">
+            <div id="page-workspace" class="page">
+                <h1>Intelligence Hub</h1>
+                <p style="color: var(--text-muted);">Process documents through our neural legal engine.</p>
+                <div class="glass-box" onclick="document.getElementById('file-input').click()">
+                    <div class="icon-circle"><i data-lucide="file-up"></i></div>
+                    <h3>Initialize Case Scan</h3>
+                    <p>Click to upload or drag & drop PDF/Docx</p>
+                    <input type="file" id="file-input" hidden onchange="processFile(this)">
+                </div>
+            </div>
+
+            <div id="page-profile" class="page hidden">
+                <h1 id="user-display-name">Profile</h1>
+                <div class="stat-grid">
+                    <div class="stat-card"><small>TOTAL SCANS</small><h3>42</h3></div>
+                    <div class="stat-card"><small>RISKS FOUND</small><h3 style="color: var(--danger)">12</h3></div>
+                    <div class="stat-card"><small>RANK XP</small><h3>2,450</h3></div>
+                </div>
+                <h3>Case History</h3>
+                <table class="data-table">
+                    <thead><tr><th>Document Name</th><th>Date</th><th>Risk</th><th>Action</th></tr></thead>
+                    <tbody id="history-body"></tbody>
+                </table>
+            </div>
+        </main>
+    </div>
+
+    <div id="report-modal" class="modal-overlay hidden">
+        <div class="modal-card">
+            <header class="modal-header">
+                <div><span class="badge">LEGAL ANALYSIS</span><h2 id="m-name">Document.pdf</h2></div>
+                <button onclick="closeModal()" style="border:none; background:#f1f5f9; padding:8px; border-radius:8px; cursor:pointer;"><i data-lucide="x"></i></button>
+            </header>
+            <div class="modal-body">
+                <section class="summary-box">
+                    <h3><i data-lucide="align-left"></i> Executive Summary</h3>
+                    <p id="m-summary"></p>
+                </section>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem;">
+                    <div style="padding: 1rem; border: 1px solid var(--border); border-radius: 12px;"><small>JURISDICTION</small><p>New York, USA</p></div>
+                    <div style="padding: 1rem; border: 1px solid var(--border); border-radius: 12px;"><small>TERMINATION</small><p>30 Days Notice</p></div>
+                </div>
+                <h3><i data-lucide="shield-alert"></i> Risk Assessment</h3>
+                <div class="risk-card" id="m-risk"></div>
+            </div>
+            <footer style="padding: 1.5rem 2rem; border-top: 1px solid var(--border); text-align: right;">
+                <button class="btn-primary" style="width: auto; padding: 12px 30px;" onclick="closeModal()">Close Report</button>
+            </footer>
+        </div>
+    </div>
+
+    <script>
+        lucide.createIcons();
+        let history = [
+            { name: "Vendor_Agreement.pdf", date: "Mar 25, 2026", risk: "Low", summ: "Standard service terms with fixed pricing." },
+            { name: "Employment_NDA.docx", date: "Mar 20, 2026", risk: "High", summ: "Unusually broad non-compete clause detected." }
+        ];
+
+        function toggleAuth(type) {
+            document.getElementById('form-login').classList.toggle('hidden', type === 'register');
+            document.getElementById('form-register').classList.toggle('hidden', type === 'login');
+        }
+
+        function handleAuth(e, type) {
+            e.preventDefault();
+            const name = type === 'register' ? document.getElementById('reg-name').value : "John Doe";
+            document.getElementById('page-auth').classList.add('hidden');
+            document.getElementById('app-shell').classList.remove('hidden');
+            document.getElementById('user-display-name').innerText = name + "'s Profile";
+        }
+
+        function showPage(p) {
+            document.querySelectorAll('.page').forEach(page => page.classList.add('hidden'));
+            document.getElementById('page-' + p).classList.remove('hidden');
+            document.querySelectorAll('.nav-link').forEach(n => n.classList.remove('active'));
+            event.currentTarget.classList.add('active');
+            if(p === 'profile') renderHistory();
+        }
+
+        function processFile(input) {
+            if(!input.files) return;
+            const name = input.files.name;
+            alert("Analyzing Case: " + name);
+            setTimeout(() => {
+                const newDoc = { name, date: "Mar 28, 2026", risk: "Medium", summ: "Summary for " + name + ": AI identified intellectual property protections." };
+                history.unshift(newDoc);
+                openSummary(newDoc.name, newDoc.summ);
+            }, 2000);
+        }
+
+        function renderHistory() {
+            const body = document.getElementById('history-body');
+            body.innerHTML = history.map(item => `
+                <tr onclick="openSummary('${item.name}', '${item.summ}')" style="cursor:pointer">
+                    <td><b>${item.name}</b></td><td>${item.date}</td>
+                    <td><span style="color:${item.risk === 'Low' ? 'var(--primary)' : 'var(--danger)'}">${item.risk}</span></td>
+                    <td>View</td>
+                </tr>
+            `).join('');
+            lucide.createIcons();
+        }
+
+        function openSummary(name, summ) {
+            document.getElementById('m-name').innerText = name;
+            document.getElementById('m-summary').innerText = summ || "Analyzing document metadata...";
+            document.getElementById('m-risk').innerHTML = "<b>Warning:</b> Section 4.2 contains potential liability gaps.";
+            document.getElementById('report-modal').classList.remove('hidden');
+            lucide.createIcons();
+        }
+
+        function closeModal() { document.getElementById('report-modal').classList.add('hidden'); }
+    </script>
+</body>
+</html>

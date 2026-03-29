@@ -1,0 +1,315 @@
+/* --- Global Variables & Refined Color Palette --- */
+:root {
+    --primary: #6366f1;        /* Modern Indigo */
+    --primary-soft: #f5f3ff;
+    --bg: #f8fafc;             /* Light Gray Background */
+    --sidebar-bg: #0f172a;     /* Deep Navy Sidebar */
+    --text-main: #1e293b;
+    --text-muted: #64748b;
+    --white: #ffffff;
+    --border: #e2e8f0;
+    --danger: #ef4444;         /* Soft Red for risks */
+    --success: #10b981;        /* Mint for compliance */
+    --gold: #92400e;
+    --gold-bg: #fef3c7;
+}
+
+/* Basic Reset & Typography */
+* { 
+    box-sizing: border-box; 
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); 
+    font-family: 'Plus Jakarta Sans', sans-serif; 
+}
+
+body { 
+    margin: 0; 
+    background: var(--bg); 
+    color: var(--text-main); 
+    height: 100vh; 
+    overflow: hidden; 
+}
+
+.hidden { display: none !important; opacity: 0; }
+
+/* --- 1. AUTHENTICATION SCREENS (Login & Register) --- */
+.auth-overlay {
+    position: fixed; 
+    inset: 0; 
+    background: radial-gradient(circle at top right, #1e293b, #0f172a);
+    display: flex; 
+    align-items: center; 
+    justify-content: center; 
+    z-index: 3000;
+}
+
+.auth-card {
+    background: var(--white); 
+    padding: 3.5rem; 
+    border-radius: 32px;
+    width: 100%; 
+    max-width: 450px; 
+    box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);
+    text-align: center;
+}
+
+.input-box { text-align: left; margin-bottom: 1.2rem; }
+.input-box label { 
+    display: block; 
+    font-size: 0.75rem; 
+    font-weight: 700; 
+    margin-bottom: 8px; 
+    text-transform: uppercase; 
+    letter-spacing: 0.5px;
+}
+
+.input-box input { 
+    width: 100%; 
+    padding: 12px 16px; 
+    border: 1.5px solid var(--border); 
+    border-radius: 12px; 
+    outline: none; 
+}
+
+.input-box input:focus { 
+    border-color: var(--primary); 
+    box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1); 
+}
+
+.btn-primary { 
+    width: 100%; 
+    padding: 14px; 
+    background: var(--primary); 
+    color: white; 
+    border: none; 
+    border-radius: 12px; 
+    font-weight: 700; 
+    cursor: pointer; 
+}
+
+.btn-primary:hover { 
+    transform: translateY(-2px); 
+    box-shadow: 0 10px 15px -3px rgba(99,102,241,0.3); 
+}
+
+/* --- 2. SIDEBAR NAVIGATION --- */
+#app-shell { display: flex; height: 100vh; }
+
+.sidebar { 
+    width: 280px; 
+    background: var(--sidebar-bg); 
+    color: white; 
+    padding: 2.5rem 1.5rem; 
+    display: flex; 
+    flex-direction: column; 
+}
+
+.brand { 
+    display: flex; 
+    align-items: center; 
+    gap: 12px; 
+    margin-bottom: 3rem; 
+    font-size: 1.25rem; 
+    font-weight: 700; 
+}
+
+.logo-dot { 
+    width: 12px; 
+    height: 12px; 
+    background: var(--primary); 
+    border-radius: 50%; 
+    box-shadow: 0 0 15px var(--primary); 
+}
+
+.nav-link { 
+    padding: 12px; 
+    border-radius: 12px; 
+    display: flex; 
+    align-items: center; 
+    gap: 12px; 
+    color: var(--text-muted); 
+    cursor: pointer; 
+    margin-bottom: 8px; 
+}
+
+.nav-link:hover, .nav-link.active { 
+    background: rgba(255, 255, 255, 0.05); 
+    color: white; 
+}
+
+/* Gamified Status Widget */
+.status-widget { 
+    background: rgba(255,255,255,0.03); 
+    padding: 1.2rem; 
+    border-radius: 20px; 
+    border: 1px solid rgba(255,255,255,0.05); 
+    margin: 2rem 0; 
+}
+
+.bar-bg { 
+    background: rgba(255,255,255,0.1); 
+    height: 6px; 
+    border-radius: 10px; 
+    margin: 10px 0; 
+    overflow: hidden; 
+}
+
+.bar-fill { 
+    background: var(--primary); 
+    height: 100%; 
+    width: 65%; 
+    box-shadow: 0 0 10px var(--primary); 
+}
+
+/* --- 3. MAIN WORKSPACE --- */
+.workspace { flex: 1; padding: 3rem 4rem; overflow-y: auto; }
+
+.glass-box { 
+    background: white; 
+    padding: 6rem 2rem; 
+    border-radius: 32px; 
+    border: 1px solid var(--border); 
+    text-align: center; 
+    cursor: pointer; 
+    box-shadow: 0 10px 15px -3px rgba(0,0,0,0.03);
+}
+
+.glass-box:hover { 
+    border-color: var(--primary); 
+    transform: translateY(-2px); 
+}
+
+.icon-circle { 
+    width: 64px; 
+    height: 64px; 
+    background: var(--primary-soft); 
+    border-radius: 50%; 
+    display: flex; 
+    align-items: center; 
+    justify-content: center; 
+    margin: 0 auto 1.5rem; 
+    color: var(--primary); 
+}
+
+/* --- 4. PROFILE & HISTORY --- */
+.stat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; margin-bottom: 3rem; }
+
+.stat-card { 
+    background: white; 
+    padding: 1.5rem; 
+    border-radius: 20px; 
+    border: 1px solid var(--border); 
+    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.02);
+}
+
+.data-table { 
+    width: 100%; 
+    border-collapse: collapse; 
+    background: white; 
+    border-radius: 24px; 
+    overflow: hidden; 
+    border: 1px solid var(--border); 
+}
+
+.data-table th { 
+    background: #f1f5f9; 
+    text-align: left; 
+    padding: 18px 20px; 
+    font-size: 0.75rem; 
+    color: var(--text-muted); 
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.data-table td { padding: 18px 20px; border-bottom: 1px solid var(--border); font-size: 0.9rem; }
+
+/* Risk Tags */
+.risk-tag { padding: 4px 10px; border-radius: 6px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; }
+.risk-low { background: #dcfce7; color: #15803d; }
+.risk-high { background: #fee2e2; color: #b91c1c; }
+
+/* --- 5. SUMMARY MODAL (REPORT VIEW) --- */
+.modal-overlay { 
+    position: fixed; 
+    inset: 0; 
+    background: rgba(15, 23, 42, 0.8); 
+    backdrop-filter: blur(8px); 
+    z-index: 4000; 
+    display: flex; 
+    align-items: center; 
+    justify-content: center; 
+    padding: 2rem; 
+}
+
+.modal-card { 
+    background: var(--white); 
+    width: 100%; 
+    max-width: 850px; 
+    max-height: 90vh; 
+    border-radius: 32px; 
+    overflow-y: auto; 
+    display: flex; 
+    flex-direction: column;
+    box-shadow: 0 50px 100px -20px rgba(0,0,0,0.5);
+}
+
+.modal-header { 
+    padding: 2.5rem; 
+    border-bottom: 1px solid var(--border); 
+    display: flex; 
+    justify-content: space-between; 
+    align-items: center; 
+}
+
+.badge { 
+    background: var(--gold-bg); 
+    color: var(--gold); 
+    padding: 4px 12px; 
+    border-radius: 6px; 
+    font-size: 0.7rem; 
+    font-weight: 800; 
+    letter-spacing: 1px;
+}
+
+.modal-body { padding: 2.5rem; }
+
+.summary-box { 
+    background: #f8fafc; 
+    padding: 1.8rem; 
+    border-radius: 20px; 
+    border: 1px solid var(--border); 
+    line-height: 1.7; 
+    margin-bottom: 2rem; 
+    color: var(--text-muted);
+}
+
+.detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 2rem; }
+
+.detail-item { 
+    padding: 1.2rem; 
+    border: 1px solid var(--border); 
+    border-radius: 16px; 
+}
+
+.detail-item small { 
+    display: block; 
+    color: var(--text-muted); 
+    font-weight: 700; 
+    font-size: 0.7rem; 
+    margin-bottom: 4px;
+}
+
+.risk-card { 
+    background: #fff1f2; 
+    border-left: 5px solid var(--danger); 
+    padding: 1.5rem; 
+    border-radius: 14px; 
+    color: #9f1239; 
+    font-size: 0.9rem; 
+    line-height: 1.6;
+}
+
+.modal-footer { 
+    padding: 2rem 2.5rem; 
+    border-top: 1px solid var(--border); 
+    text-align: right; 
+}
