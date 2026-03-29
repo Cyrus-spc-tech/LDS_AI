@@ -336,11 +336,9 @@ if __name__ == '__main__':
     print("Starting Legal Document Analyzer API (Minimal)")
     print(f"Upload directory: {app.config['UPLOAD_FOLDER']}")
     
-    # Use Gunicorn for production
-    if os.getenv('RENDER') == 'true':
-        # Production mode - Render will use Gunicorn
-        port = int(os.environ.get('PORT', 5000))
-        app.run(host='0.0.0.0', port=port)
-    else:
-        # Development mode
-        app.run(host='0.0.0.0', port=5000, debug=True)
+    # Always use the port from environment variable
+    port = int(os.environ.get('PORT', 5000))
+    debug = os.getenv('DEBUG', 'False').lower() == 'true'
+    
+    print(f"Starting on port {port} with debug={debug}")
+    app.run(host='0.0.0.0', port=port, debug=debug)
