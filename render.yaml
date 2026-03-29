@@ -1,0 +1,18 @@
+services:
+  - type: web
+    name: legal-document-analyzer
+    env: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app_lightweight:app
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.9.16
+      - key: PORT
+        value: 5000
+      - key: API_HOST
+        value: 0.0.0.0
+      - key: DEBUG
+        value: false
