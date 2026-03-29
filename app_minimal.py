@@ -4,23 +4,7 @@ import os
 import uuid
 import re
 from werkzeug.utils import secure_filename
-from sklearn.feature_extraction.text import TfidfVectorizer
-import nltk
-from nltk.tokenize import sent_tokenize, word_tokenize
-from nltk.corpus import stopwords
-from nltk.stem import PorterStemmer
 import PyPDF2
-
-# Download NLTK data (only once)
-try:
-    nltk.data.find('tokenizers/punkt')
-except LookupError:
-    nltk.download('punkt', quiet=True)
-
-try:
-    nltk.data.find('corpora/stopwords')
-except LookupError:
-    nltk.download('stopwords', quiet=True)
 
 # Initialize Flask app
 app = Flask(__name__)
@@ -36,18 +20,11 @@ os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 # Allowed file extensions
 ALLOWED_EXTENSIONS = {'pdf', 'txt', 'docx'}
 
-class LightweightLegalAnalyzer:
-    """Lightweight legal document analyzer without heavy ML models"""
+class MinimalLegalAnalyzer:
+    """Ultra-minimal legal document analyzer using only built-in libraries"""
     
     def __init__(self):
-        self.stemmer = PorterStemmer()
-        self.stop_words = set(stopwords.words('english'))
-        self.vectorizer = TfidfVectorizer(
-            max_features=1000,
-            stop_words='english',
-            ngram_range=(1, 2),
-            lowercase=True
-        )
+        pass
     
     def extract_text_from_pdf(self, file_path):
         """Extract text from PDF file"""
@@ -65,43 +42,51 @@ class LightweightLegalAnalyzer:
         """Clean and preprocess text"""
         # Remove extra whitespace
         text = re.sub(r'\s+', ' ', text)
-        # Remove legal citations (basic pattern)
+        # Remove basic patterns
         text = re.sub(r'\[\d{4}\]\s+[A-Z]+\s+\d+', '', text)
         text = re.sub(r'\(\d{4}\)\s+\d+', '', text)
         text = re.sub(r'\[\d+\]', '', text)
         text = re.sub(r'Page\s+\d+', '', text)
         return text.strip()
     
-    def extractive_summarize(self, text, num_sentences=3):
-        """Extractive summarization using TF-IDF"""
-        try:
-            sentences = sent_tokenize(text)
-            if len(sentences) <= num_sentences:
-                return ' '.join(sentences)
-            
-            # Create TF-IDF matrix
-            tfidf_matrix = self.vectorizer.fit_transform(sentences)
-            
-            # Calculate sentence scores
-            sentence_scores = tfidf_matrix.sum(axis=1).A1
-            
-            # Get top sentences
-            top_indices = sentence_scores.argsort()[-num_sentences:][::-1]
-            top_indices = sorted(top_indices)
-            
-            summary_sentences = [sentences[i] for i in top_indices]
-            return ' '.join(summary_sentences)
-        except Exception:
-            # Fallback to first few sentences
-            sentences = sent_tokenize(text)
-            return ' '.join(sentences[:num_sentences])
+    def simple_summarize(self, text, max_sentences=3):
+        """Simple extractive summarization using sentence length and position"""
+        # Split into sentences (simple approach)
+        sentences = re.split(r'[.!?]+', text)
+        sentences = [s.strip() for s in sentences if len(s.strip()) > 20]
+        
+        if len(sentences) <= max_sentences:
+            return '. '.join(sentences) + '.'
+        
+        # Score sentences by length and position
+        scored_sentences = []
+        for i, sentence in enumerate(sentences):
+            # Prefer sentences in the middle of the document
+            position_score = 1.0 - abs(i - len(sentences)/2) / (len(sentences)/2)
+            # Prefer medium-length sentences
+            length_score = min(len(sentence), 100) / 100
+            # Combined score
+            score = position_score * 0.6 + length_score * 0.4
+            scored_sentences.append((sentence, score))
+        
+        # Sort by score and take top sentences
+        scored_sentences.sort(key=lambda x: x[1], reverse=True)
+        top_sentences = [s[0] for s in scored_sentences[:max_sentences]]
+        
+        # Maintain original order
+        result_sentences = []
+        for sentence in sentences:
+            if sentence in top_sentences and sentence not in result_sentences:
+                result_sentences.append(sentence)
+        
+        return '. '.join(result_sentences) + '.'
     
     def analyze_risk(self, text):
         """Basic risk analysis using keyword detection"""
         risk_keywords = {
-            'high': ['terminate', 'breach', 'liability', 'penalty', 'violation', 'lawsuit'],
-            'medium': ['obligation', 'responsibility', 'compliance', 'regulation', 'deadline'],
-            'low': ['agreement', 'cooperation', 'partnership', 'mutual', 'beneficial']
+            'high': ['terminate', 'breach', 'liability', 'penalty', 'violation', 'lawsuit', 'void', 'illegal'],
+            'medium': ['obligation', 'responsibility', 'compliance', 'regulation', 'deadline', 'requirement'],
+            'low': ['agreement', 'cooperation', 'partnership', 'mutual', 'beneficial', 'support']
         }
         
         text_lower = text.lower()
@@ -120,23 +105,43 @@ class LightweightLegalAnalyzer:
             return 'low'
     
     def extract_key_terms(self, text, num_terms=10):
-        """Extract key terms using TF-IDF"""
-        try:
-            # Simple keyword extraction
-            words = word_tokenize(text.lower())
-            words = [self.stemmer.stem(word) for word in words 
-                    if word.isalpha() and word not in self.stop_words]
-            
-            # Count word frequencies
-            word_freq = {}
-            for word in words:
+        """Extract key terms using simple frequency analysis"""
+        # Simple word frequency analysis
+        words = re.findall(r'\b[a-zA-Z]{4,}\b', text.lower())
+        
+        # Common legal and business words to filter out
+        stop_words = {
+            'that', 'this', 'with', 'from', 'they', 'have', 'been', 'said', 'each', 'which',
+            'their', 'time', 'will', 'would', 'could', 'should', 'may', 'might', 'must',
+            'shall', 'can', 'into', 'upon', 'such', 'more', 'most', 'some', 'any', 'what',
+            'when', 'where', 'why', 'how', 'only', 'very', 'also', 'even', 'well', 'much',
+            'many', 'still', 'being', 'does', 'did', 'than', 'make', 'like', 'just', 'know',
+            'take', 'come', 'made', 'find', 'where', 'much', 'through', 'between', 'both',
+            'after', 'before', 'here', 'there', 'another', 'other', 'those', 'these', 'same',
+            'over', 'under', 'again', 'further', 'then', 'once', 'work', 'call', 'try', 'ask',
+            'need', 'feel', 'seem', 'leave', 'put', 'keep', 'let', 'begin', 'seem', 'write',
+            'give', 'become', 'turn', 'open', 'walk', 'win', 'offer', 'believe', 'hold',
+            'bring', 'happen', 'write', 'provide', 'sit', 'stand', 'lose', 'pay', 'meet',
+            'include', 'continue', 'set', 'learn', 'change', 'lead', 'understand', 'watch',
+            'follow', 'stop', 'create', 'speak', 'read', 'allow', 'add', 'spend', 'grow',
+            'open', 'walk', 'win', 'offer', 'believe', 'hold', 'bring', 'happen', 'write',
+            'provide', 'sit', 'stand', 'lose', 'pay', 'meet', 'include', 'continue', 'set',
+            'learn', 'change', 'lead', 'understand', 'watch', 'follow', 'stop', 'create',
+            'speak', 'read', 'allow', 'add', 'spend', 'grow', 'open', 'walk', 'win', 'offer',
+            'believe', 'hold', 'bring', 'happen', 'write', 'provide', 'sit', 'stand', 'lose',
+            'pay', 'meet', 'include', 'continue', 'set', 'learn', 'change', 'lead', 'understand',
+            'watch', 'follow', 'stop', 'create', 'speak', 'read', 'allow', 'add', 'spend', 'grow'
+        }
+        
+        # Filter out stop words and count frequencies
+        word_freq = {}
+        for word in words:
+            if word not in stop_words:
                 word_freq[word] = word_freq.get(word, 0) + 1
-            
-            # Get top terms
-            top_terms = sorted(word_freq.items(), key=lambda x: x[1], reverse=True)[:num_terms]
-            return [term for term, freq in top_terms]
-        except Exception:
-            return ['legal', 'document', 'analysis']
+        
+        # Get top terms
+        top_terms = sorted(word_freq.items(), key=lambda x: x[1], reverse=True)[:num_terms]
+        return [term for term, freq in top_terms]
     
     def process_document(self, text):
         """Process document and return analysis"""
@@ -145,7 +150,7 @@ class LightweightLegalAnalyzer:
             cleaned_text = self.clean_text(text)
             
             # Generate summary
-            summary = self.extractive_summarize(cleaned_text)
+            summary = self.simple_summarize(cleaned_text)
             
             # Analyze risk
             risk_level = self.analyze_risk(cleaned_text)
@@ -176,7 +181,7 @@ class LightweightLegalAnalyzer:
             }
 
 # Initialize analyzer
-analyzer = LightweightLegalAnalyzer()
+analyzer = MinimalLegalAnalyzer()
 
 def allowed_file(filename):
     """Check if file extension is allowed"""
@@ -188,7 +193,7 @@ def health_check():
     """Health check endpoint"""
     return jsonify({
         'status': 'healthy',
-        'service': 'Legal Document Analyzer API (Lightweight)',
+        'service': 'Legal Document Analyzer API (Minimal)',
         'version': '1.0.0'
     })
 
@@ -301,8 +306,8 @@ def models_info():
     return jsonify({
         'models': {
             'extractive': {
-                'name': 'TF-IDF Extractive Summarizer',
-                'description': 'Selects important sentences based on TF-IDF scoring'
+                'name': 'Simple Extractive Summarizer',
+                'description': 'Selects important sentences based on position and length'
             },
             'risk_analysis': {
                 'name': 'Keyword-based Risk Analysis',
@@ -328,7 +333,7 @@ def internal_error(e):
     return jsonify({'error': 'Internal server error'}), 500
 
 if __name__ == '__main__':
-    print("Starting Legal Document Analyzer API (Lightweight)")
+    print("Starting Legal Document Analyzer API (Minimal)")
     print(f"Upload directory: {app.config['UPLOAD_FOLDER']}")
     
     # Use Gunicorn for production
